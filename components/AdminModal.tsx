@@ -5,7 +5,7 @@ import type { Data } from "@/lib/types";
 import { formatScore, parseScore } from "@/lib/score";
 import { todayLocalISO } from "@/lib/format";
 
-type Tab = "match" | "players" | "emails";
+type Tab = "match" | "players";
 
 const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
 
@@ -35,18 +35,13 @@ export default function AdminModal({
             Lançar jogo
           </button>
           <button className={tab === "players" ? "on" : ""} onClick={() => setTab("players")}>
-            Jogadores
-          </button>
-          <button className={tab === "emails" ? "on" : ""} onClick={() => setTab("emails")}>
-            Participantes
+            Jogadores e acesso
           </button>
         </div>
         {tab === "match" ? (
           <MatchForm data={data} onChanged={onChanged} onSessionExpired={onSessionExpired} />
-        ) : tab === "players" ? (
-          <PlayersTab data={data} onChanged={onChanged} onSessionExpired={onSessionExpired} />
         ) : (
-          <EmailsTab onSessionExpired={onSessionExpired} />
+          <PlayersTab data={data} onChanged={onChanged} onSessionExpired={onSessionExpired} />
         )}
       </div>
     </div>
@@ -207,10 +202,15 @@ function MatchForm({ data, onChanged, onSessionExpired }: Props) {
   );
 }
 
+type AdminPlayer = { id: number; name: string; email: string | null };
+
+/** Jogadores: nome + e-mail Google. Jogador com e-mail pode entrar e enviar resultados. */
 function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
+  const [items, setItems] = useState<AdminPlayer[] | null>(null);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<{ id: number; name: string } | null>(null);
+  const [editing, setEditing] = useState<AdminPlayer | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -222,124 +222,12 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
     }
     return c;
   }, [data.matches]);
-  const sorted = useMemo(
-    () => [...data.players].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
-    [data.players],
-  );
-
-  async function call(url: string, method: string, body?: unknown) {
-    setError("");
-    setBusy(true);
-    try {
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      if (res.status === 401) {
-        onSessionExpired();
-        return false;
-      }
-      if (!res.ok) {
-        setError((await res.json().catch(() => null))?.error ?? "Erro na operação.");
-        return false;
-      }
-      await onChanged();
-      return true;
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const add = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (await call("/api/players", "POST", { name })) setName("");
-  };
-
-  return (
-    <div className="form">
-      <form className="addrow" onSubmit={add}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do novo jogador" />
-        <button className="btn primary" disabled={busy || name.trim().length < 2}>
-          Adicionar
-        </button>
-      </form>
-      {error && <p className="notice error">{error}</p>}
-      <ul className="plist">
-        {sorted.map((p) => {
-          const n = counts.get(p.id) ?? 0;
-          return (
-            <li key={p.id}>
-              {editing?.id === p.id ? (
-                <form
-                  className="addrow"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (await call(`/api/players/${p.id}`, "PATCH", { name: editing.name })) setEditing(null);
-                  }}
-                >
-                  <input
-                    autoFocus
-                    value={editing.name}
-                    onChange={(e) => setEditing({ id: p.id, name: e.target.value })}
-                  />
-                  <button className="btn small primary" disabled={busy}>
-                    Salvar
-                  </button>
-                  <button type="button" className="btn small" onClick={() => setEditing(null)}>
-                    Cancelar
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <span className="pname">{p.name}</span>
-                  <span className="muted">{n} {n === 1 ? "jogo" : "jogos"}</span>
-                  <button className="btn small" onClick={() => setEditing({ id: p.id, name: p.name })}>
-                    Renomear
-                  </button>
-                  {n === 0 && (
-                    <button
-                      className={`link-danger ${confirmId === p.id ? "armed" : ""}`}
-                      onClick={async () => {
-                        if (confirmId !== p.id) {
-                          setConfirmId(p.id);
-                          setTimeout(() => setConfirmId((c) => (c === p.id ? null : c)), 4000);
-                          return;
-                        }
-                        setConfirmId(null);
-                        await call(`/api/players/${p.id}`, "DELETE");
-                      }}
-                    >
-                      {confirmId === p.id ? "Confirmar?" : "Excluir"}
-                    </button>
-                  )}
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-type AllowedEmail = { id: number; email: string; label: string | null };
-
-/** E-mails Google autorizados a enviar resultados pelo botão "Enviar resultado". */
-function EmailsTab({ onSessionExpired }: { onSessionExpired: () => void }) {
-  const [items, setItems] = useState<AllowedEmail[] | null>(null);
-  const [email, setEmail] = useState("");
-  const [label, setLabel] = useState("");
-  const [error, setError] = useState("");
-  const [editing, setEditing] = useState<{ id: number; email: string; label: string } | null>(null);
-  const [confirmId, setConfirmId] = useState<number | null>(null);
-  const [busy, setBusy] = useState(false);
 
   async function load() {
-    const res = await fetch("/api/emails", { cache: "no-store" });
+    const res = await fetch("/api/players", { cache: "no-store" });
     if (res.status === 401) return onSessionExpired();
     if (!res.ok) return setError("Não foi possível carregar a lista.");
-    setItems((await res.json()).emails);
+    setItems((await res.json()).players);
   }
   useEffect(() => {
     load();
@@ -363,7 +251,7 @@ function EmailsTab({ onSessionExpired }: { onSessionExpired: () => void }) {
         setError((await res.json().catch(() => null))?.error ?? "Erro na operação.");
         return false;
       }
-      await load();
+      await Promise.all([load(), onChanged()]);
       return true;
     } finally {
       setBusy(false);
@@ -372,99 +260,103 @@ function EmailsTab({ onSessionExpired }: { onSessionExpired: () => void }) {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (await call("/api/emails", "POST", { email, label })) {
+    if (await call("/api/players", "POST", { name, email })) {
+      setName("");
       setEmail("");
-      setLabel("");
     }
   };
 
   return (
     <div className="form emails">
       <p className="muted">
-        Quem estiver aqui pode entrar com a conta Google e enviar resultados. Use o e-mail exato da conta Google da
-        pessoa. Remover um e-mail bloqueia o acesso na hora.
+        Cada jogador pode ter um e-mail Google. Quem tem e-mail cadastrado entra com a conta Google e envia resultados
+        pelo botão “Enviar resultado”. Sem e-mail, o jogador só aparece no ranking. Apagar o e-mail bloqueia o acesso na
+        hora.
       </p>
       <form className="addrow" onSubmit={add}>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do jogador" maxLength={60} />
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="E-mail Google (ex: nome@gmail.com)"
+          placeholder="E-mail Google (opcional)"
           autoComplete="off"
         />
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nome (opcional)" maxLength={60} />
-        <button className="btn primary" disabled={busy || !email.includes("@")}>
+        <button className="btn primary" disabled={busy || name.trim().length < 2}>
           Adicionar
         </button>
       </form>
       {error && <p className="notice error">{error}</p>}
       {items === null ? (
         <p className="muted">Carregando…</p>
-      ) : items.length === 0 ? (
-        <p className="muted">Nenhum e-mail cadastrado ainda.</p>
       ) : (
         <ul className="plist">
-          {items.map((it) => (
-            <li key={it.id}>
-              {editing?.id === it.id ? (
-                <form
-                  className="addrow"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (await call(`/api/emails/${it.id}`, "PATCH", { email: editing.email, label: editing.label })) {
-                      setEditing(null);
-                    }
-                  }}
-                >
-                  <input
-                    autoFocus
-                    type="email"
-                    value={editing.email}
-                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
-                  />
-                  <input
-                    value={editing.label}
-                    maxLength={60}
-                    placeholder="Nome (opcional)"
-                    onChange={(e) => setEditing({ ...editing, label: e.target.value })}
-                  />
-                  <button className="btn small primary" disabled={busy}>
-                    Salvar
-                  </button>
-                  <button type="button" className="btn small" onClick={() => setEditing(null)}>
-                    Cancelar
-                  </button>
-                </form>
-              ) : (
-                <>
-                  <span className="pname">
-                    {it.label ? <strong>{it.label} </strong> : null}
-                    <span className="muted">{it.email}</span>
-                  </span>
-                  <button
-                    className="btn small"
-                    onClick={() => setEditing({ id: it.id, email: it.email, label: it.label ?? "" })}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className={`link-danger ${confirmId === it.id ? "armed" : ""}`}
-                    onClick={async () => {
-                      if (confirmId !== it.id) {
-                        setConfirmId(it.id);
-                        setTimeout(() => setConfirmId((c) => (c === it.id ? null : c)), 4000);
-                        return;
+          {items.map((p) => {
+            const n = counts.get(p.id) ?? 0;
+            return (
+              <li key={p.id}>
+                {editing?.id === p.id ? (
+                  <form
+                    className="addrow"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (await call(`/api/players/${p.id}`, "PATCH", { name: editing.name, email: editing.email ?? "" })) {
+                        setEditing(null);
                       }
-                      setConfirmId(null);
-                      await call(`/api/emails/${it.id}`, "DELETE");
                     }}
                   >
-                    {confirmId === it.id ? "Confirmar?" : "Remover"}
-                  </button>
-                </>
-              )}
-            </li>
-          ))}
+                    <input
+                      autoFocus
+                      value={editing.name}
+                      maxLength={60}
+                      onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                    />
+                    <input
+                      type="email"
+                      value={editing.email ?? ""}
+                      placeholder="E-mail Google (opcional)"
+                      onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                    />
+                    <button className="btn small primary" disabled={busy}>
+                      Salvar
+                    </button>
+                    <button type="button" className="btn small" onClick={() => setEditing(null)}>
+                      Cancelar
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <span className="pname">
+                      <strong>{p.name}</strong>{" "}
+                      {p.email ? <span className="muted">{p.email}</span> : <span className="muted">· sem acesso</span>}
+                    </span>
+                    <span className="muted">
+                      {n} {n === 1 ? "jogo" : "jogos"}
+                    </span>
+                    <button className="btn small" onClick={() => setEditing(p)}>
+                      Editar
+                    </button>
+                    {n === 0 && (
+                      <button
+                        className={`link-danger ${confirmId === p.id ? "armed" : ""}`}
+                        onClick={async () => {
+                          if (confirmId !== p.id) {
+                            setConfirmId(p.id);
+                            setTimeout(() => setConfirmId((c) => (c === p.id ? null : c)), 4000);
+                            return;
+                          }
+                          setConfirmId(null);
+                          await call(`/api/players/${p.id}`, "DELETE");
+                        }}
+                      >
+                        {confirmId === p.id ? "Confirmar?" : "Excluir"}
+                      </button>
+                    )}
+                  </>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

@@ -5,7 +5,7 @@ import { ensureSchema, pool } from "@/lib/db";
 
 /**
  * Sessão dos participantes (login com Google). O cookie guarda só o e-mail verificado pelo Google,
- * assinado com HMAC. Quem pode enviar resultados é sempre conferido na lista do banco (allowed_emails),
+ * assinado com HMAC. Quem pode enviar resultados é sempre conferido na lista do banco (e-mail do jogador),
  * então remover um e-mail da lista revoga o acesso na hora.
  */
 
@@ -47,7 +47,7 @@ function emailFromToken(token?: string): string | null {
 
 export async function isAllowedEmail(email: string): Promise<boolean> {
   await ensureSchema();
-  const r = await pool().query("SELECT 1 FROM allowed_emails WHERE lower(email) = lower($1)", [email]);
+  const r = await pool().query("SELECT 1 FROM players WHERE email IS NOT NULL AND lower(email) = lower($1)", [email]);
   return (r.rowCount ?? 0) > 0;
 }
 

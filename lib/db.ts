@@ -55,14 +55,18 @@ async function createSchema(): Promise<void> {
       CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
       -- Quem enviou o resultado (e-mail Google); nulo quando lançado pelo admin
       ALTER TABLE matches ADD COLUMN IF NOT EXISTS submitted_by TEXT;
-      -- E-mails autorizados a enviar resultados pelo site
-      CREATE TABLE IF NOT EXISTS allowed_emails (
-        id SERIAL PRIMARY KEY,
-        email TEXT NOT NULL,
-        label TEXT,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      );
-      CREATE UNIQUE INDEX IF NOT EXISTS allowed_emails_uq ON allowed_emails (lower(email));
+      -- E-mail Google do jogador: quem tem e-mail cadastrado pode enviar resultados pelo site
+      ALTER TABLE players ADD COLUMN IF NOT EXISTS email TEXT;
+      CREATE UNIQUE INDEX IF NOT EXISTS players_email_uq ON players (lower(email)) WHERE email IS NOT NULL;
+      -- Migra a lista antiga (allowed_emails), quando existir, casando pelo nome
+      DO $$ BEGIN
+        IF to_regclass('public.allowed_emails') IS NOT NULL THEN
+          UPDATE players p SET email = lower(a.email)
+            FROM allowed_emails a
+            WHERE p.email IS NULL AND a.label IS NOT NULL AND lower(a.label) = lower(p.name)
+              AND NOT EXISTS (SELECT 1 FROM players q WHERE lower(q.email) = lower(a.email));
+        END IF;
+      END $$;
     `);
     const first = await client.query(
       "INSERT INTO meta (key, value) VALUES ('seeded', '1') ON CONFLICT DO NOTHING RETURNING key",
