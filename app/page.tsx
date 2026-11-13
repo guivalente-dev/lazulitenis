@@ -1,4 +1,5 @@
 import { isAdmin } from "@/lib/auth";
+import { currentUser } from "@/lib/userauth";
 import { DbNotConfigured, getData } from "@/lib/db";
 import type { Data } from "@/lib/types";
 import App from "@/components/App";
@@ -25,5 +26,6 @@ export default async function Page() {
       </main>
     );
   }
-  return <App initial={data} initialAdmin={await isAdmin()} />;
+  const user = await currentUser().catch(() => null);
+  return <App initial={data} initialAdmin={await isAdmin()} initialUser={user} />;
 }

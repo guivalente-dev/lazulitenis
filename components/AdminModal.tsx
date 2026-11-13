@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Data } from "@/lib/types";
 import { formatScore, parseScore } from "@/lib/score";
 import { todayLocalISO } from "@/lib/format";
 
-type Tab = "match" | "players";
+type Tab = "match" | "players" | "emails";
 
 const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
 
@@ -37,11 +37,16 @@ export default function AdminModal({
           <button className={tab === "players" ? "on" : ""} onClick={() => setTab("players")}>
             Jogadores
           </button>
+          <button className={tab === "emails" ? "on" : ""} onClick={() => setTab("emails")}>
+            Participantes
+          </button>
         </div>
         {tab === "match" ? (
           <MatchForm data={data} onChanged={onChanged} onSessionExpired={onSessionExpired} />
-        ) : (
+        ) : tab === "players" ? (
           <PlayersTab data={data} onChanged={onChanged} onSessionExpired={onSessionExpired} />
+        ) : (
+          <EmailsTab onSessionExpired={onSessionExpired} />
         )}
       </div>
     </div>
@@ -314,6 +319,154 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+type AllowedEmail = { id: number; email: string; label: string | null };
+
+/** E-mails Google autorizados a enviar resultados pelo botão "Enviar resultado". */
+function EmailsTab({ onSessionExpired }: { onSessionExpired: () => void }) {
+  const [items, setItems] = useState<AllowedEmail[] | null>(null);
+  const [email, setEmail] = useState("");
+  const [label, setLabel] = useState("");
+  const [error, setError] = useState("");
+  const [editing, setEditing] = useState<{ id: number; email: string; label: string } | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function load() {
+    const res = await fetch("/api/emails", { cache: "no-store" });
+    if (res.status === 401) return onSessionExpired();
+    if (!res.ok) return setError("Não foi possível carregar a lista.");
+    setItems((await res.json()).emails);
+  }
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function call(url: string, method: string, body?: unknown) {
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (res.status === 401) {
+        onSessionExpired();
+        return false;
+      }
+      if (!res.ok) {
+        setError((await res.json().catch(() => null))?.error ?? "Erro na operação.");
+        return false;
+      }
+      await load();
+      return true;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const add = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (await call("/api/emails", "POST", { email, label })) {
+      setEmail("");
+      setLabel("");
+    }
+  };
+
+  return (
+    <div className="form emails">
+      <p className="muted">
+        Quem estiver aqui pode entrar com a conta Google e enviar resultados. Use o e-mail exato da conta Google da
+        pessoa. Remover um e-mail bloqueia o acesso na hora.
+      </p>
+      <form className="addrow" onSubmit={add}>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="E-mail Google (ex: nome@gmail.com)"
+          autoComplete="off"
+        />
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Nome (opcional)" maxLength={60} />
+        <button className="btn primary" disabled={busy || !email.includes("@")}>
+          Adicionar
+        </button>
+      </form>
+      {error && <p className="notice error">{error}</p>}
+      {items === null ? (
+        <p className="muted">Carregando…</p>
+      ) : items.length === 0 ? (
+        <p className="muted">Nenhum e-mail cadastrado ainda.</p>
+      ) : (
+        <ul className="plist">
+          {items.map((it) => (
+            <li key={it.id}>
+              {editing?.id === it.id ? (
+                <form
+                  className="addrow"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (await call(`/api/emails/${it.id}`, "PATCH", { email: editing.email, label: editing.label })) {
+                      setEditing(null);
+                    }
+                  }}
+                >
+                  <input
+                    autoFocus
+                    type="email"
+                    value={editing.email}
+                    onChange={(e) => setEditing({ ...editing, email: e.target.value })}
+                  />
+                  <input
+                    value={editing.label}
+                    maxLength={60}
+                    placeholder="Nome (opcional)"
+                    onChange={(e) => setEditing({ ...editing, label: e.target.value })}
+                  />
+                  <button className="btn small primary" disabled={busy}>
+                    Salvar
+                  </button>
+                  <button type="button" className="btn small" onClick={() => setEditing(null)}>
+                    Cancelar
+                  </button>
+                </form>
+              ) : (
+                <>
+                  <span className="pname">
+                    {it.label ? <strong>{it.label} </strong> : null}
+                    <span className="muted">{it.email}</span>
+                  </span>
+                  <button
+                    className="btn small"
+                    onClick={() => setEditing({ id: it.id, email: it.email, label: it.label ?? "" })}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className={`link-danger ${confirmId === it.id ? "armed" : ""}`}
+                    onClick={async () => {
+                      if (confirmId !== it.id) {
+                        setConfirmId(it.id);
+                        setTimeout(() => setConfirmId((c) => (c === it.id ? null : c)), 4000);
+                        return;
+                      }
+                      setConfirmId(null);
+                      await call(`/api/emails/${it.id}`, "DELETE");
+                    }}
+                  >
+                    {confirmId === it.id ? "Confirmar?" : "Remover"}
+                  </button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

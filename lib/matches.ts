@@ -8,6 +8,8 @@ export type NewMatch = {
   wo?: unknown;
   woLoser?: unknown;
   score?: unknown;
+  /** E-mail de quem enviou (nulo quando lançado pelo admin) */
+  submittedBy?: string | null;
 };
 
 export type MatchResult =
@@ -70,10 +72,10 @@ export async function createMatch(b: NewMatch | null): Promise<MatchResult> {
 
   try {
     const ins = await db.query(
-      `INSERT INTO matches (winner_id, loser_id, score, wo, played_on)
-       VALUES ($1, $2, $3, $4, COALESCE(NULLIF($5, '')::date, (now() AT TIME ZONE 'America/Sao_Paulo')::date))
+      `INSERT INTO matches (winner_id, loser_id, score, wo, played_on, submitted_by)
+       VALUES ($1, $2, $3, $4, COALESCE(NULLIF($5, '')::date, (now() AT TIME ZONE 'America/Sao_Paulo')::date), $6)
        RETURNING id`,
-      [winner, loser, score, wo, date],
+      [winner, loser, score, wo, date, b?.submittedBy ?? null],
     );
     return { ok: true, id: ins.rows[0].id, winner, loser, score };
   } catch (e) {
@@ -81,4 +83,32 @@ export async function createMatch(b: NewMatch | null): Promise<MatchResult> {
     if ((e as { code?: string }).code === "23505") return fail("Esse jogo já foi realizado.", 409);
     throw e;
   }
+}
+
+/**
+ * Resultado enviado por um participante logado.
+ * O placar é escrito do ponto de vista do vencedor (games do vencedor primeiro) ou apenas "WO".
+ */
+export async function submitResult(
+  b: { winner?: unknown; loser?: unknown; score?: unknown; date?: unknown } | null,
+  by: string,
+): Promise<MatchResult> {
+  const winner = Number(b?.winner);
+  const loser = Number(b?.loser);
+  if (!Number.isInteger(winner) || !Number.isInteger(loser)) return fail("Selecione o vencedor e o perdedor.");
+  if (winner === loser) return fail("Vencedor e perdedor precisam ser diferentes.");
+
+  const date = typeof b?.date === "string" ? b.date : "";
+  if (date && Date.parse(date) > Date.now() + 36 * 3600 * 1000) return fail("A data do jogo não pode ser no futuro.");
+
+  const score = String(b?.score ?? "").trim();
+  const isWo = /^wo$/i.test(score);
+  if (!isWo) {
+    const parsed = parseScore(score);
+    if (!parsed.ok) return fail(parsed.error);
+    if (parsed.winnerSide !== 1) {
+      return fail("O placar indica que o vencedor informado perdeu. Escreva primeiro os games do vencedor.");
+    }
+  }
+  return createMatch({ p1: winner, p2: loser, date, wo: isWo, woLoser: loser, score, submittedBy: by });
 }

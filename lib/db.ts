@@ -53,6 +53,16 @@ async function createSchema(): Promise<void> {
       CREATE UNIQUE INDEX IF NOT EXISTS matches_pair_uq
         ON matches (LEAST(winner_id, loser_id), GREATEST(winner_id, loser_id));
       CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+      -- Quem enviou o resultado (e-mail Google); nulo quando lançado pelo admin
+      ALTER TABLE matches ADD COLUMN IF NOT EXISTS submitted_by TEXT;
+      -- E-mails autorizados a enviar resultados pelo site
+      CREATE TABLE IF NOT EXISTS allowed_emails (
+        id SERIAL PRIMARY KEY,
+        email TEXT NOT NULL,
+        label TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS allowed_emails_uq ON allowed_emails (lower(email));
     `);
     const first = await client.query(
       "INSERT INTO meta (key, value) VALUES ('seeded', '1') ON CONFLICT DO NOTHING RETURNING key",

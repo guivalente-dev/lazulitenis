@@ -157,3 +157,7 @@ table.matches { min-width: 760px; }
 }
 
 .footer-stats { text-align: center; margin: 26px 0 0; }
+.who { margin: 0 0 10px; word-break: break-all; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+.aviso { margin: 8px 0; }
+.emails .addrow { flex-wrap: wrap; }
