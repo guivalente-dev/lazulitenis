@@ -36,8 +36,8 @@ body {
 
 .card { background: #fff; border: 3px solid #fff; border-radius: 4px; }
 .scroll { overflow: auto; }
-.ranking-scroll { max-height: min(72vh, 760px); }
-.matches-scroll { max-height: min(75vh, 820px); }
+.ranking-scroll { max-height: none; overflow-y: visible; }
+.matches-scroll { max-height: 920px; } /* ~20 jogos visíveis; o resto rola */
 
 table.grid { border-collapse: collapse; width: 100%; color: var(--ink); font-size: 1rem; }
 table.ranking { min-width: 860px; }
