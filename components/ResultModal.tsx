@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import type { Data } from "@/lib/types";
 import { formatScore, parseScore } from "@/lib/score";
 import { todayLocalISO } from "@/lib/format";
-import DateInput from "./DateInput";
 
 const pairKey = (a: number, b: number) => (a < b ? `${a}-${b}` : `${b}-${a}`);
 
@@ -96,7 +95,7 @@ export default function ResultModal({
         <form className="form" onSubmit={submit}>
           <label className="field">
             Data do jogo (opcional)
-            <DateInput value={date} onChange={setDate} max={todayLocalISO()} />
+            <input type="date" value={date} max={todayLocalISO()} onChange={(e) => setDate(e.target.value)} />
             <small className="hint">Sem data, usa o dia do envio.</small>
           </label>
 
