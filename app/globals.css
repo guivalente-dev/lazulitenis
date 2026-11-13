@@ -1,5 +1,6 @@
 :root {
-  --bg: #062a52;
+  --bg: #e9edf2;
+  --page-ink: #1f2d3d;
   --hdr: #1a4678;
   --hdr-line: #2c5c90;
   --green: #6ccf6f;
@@ -16,7 +17,7 @@ body {
   font-size: 16px;
 }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 14px 12px 56px; }
-.title { text-align: center; font-size: 2rem; margin: 10px 0 12px; letter-spacing: .2px; }
+.title { color: var(--page-ink); text-align: center; font-size: 2rem; margin: 10px 0 12px; letter-spacing: .2px; }
 .matches-section { margin-top: 28px; scroll-margin-top: 8px; }
 .muted { color: #9db6d3; font-size: .9rem; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
@@ -156,7 +157,7 @@ table.matches { min-width: 760px; }
   .matches-scroll { max-height: 75vh; }
 }
 
-.footer-stats { text-align: center; margin: 26px 0 0; }
+.footer-stats { color: var(--page-ink); text-align: center; margin: 26px 0 0; }
 .who { margin: 0 0 10px; word-break: break-all; }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 .aviso { margin: 8px 0; }
