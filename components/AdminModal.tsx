@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Data } from "@/lib/types";
 import { formatScore, parseScore } from "@/lib/score";
 import { todayLocalISO } from "@/lib/format";
+import DateInput from "./DateInput";
 
 type Tab = "match" | "players";
 
@@ -147,7 +148,7 @@ function MatchForm({ data, onChanged, onSessionExpired }: Props) {
 
       <label className="field">
         Data do jogo
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        <DateInput value={date} onChange={setDate} max={todayLocalISO()} />
       </label>
 
       <div className="seg" role="tablist">

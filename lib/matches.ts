@@ -56,7 +56,7 @@ export async function createMatch(b: NewMatch | null): Promise<MatchResult> {
 
   // Validação: o confronto já aconteceu? (em qualquer ordem)
   const dup = await db.query(
-    `SELECT m.id, to_char(m.played_on, 'DD/MM/YYYY') AS d, m.score, w.name AS wn, l.name AS ln
+    `SELECT m.id, to_char(m.played_on, 'DD/MM/YY') AS d, m.score, w.name AS wn, l.name AS ln
        FROM matches m JOIN players w ON w.id = m.winner_id JOIN players l ON l.id = m.loser_id
       WHERE LEAST(m.winner_id, m.loser_id) = LEAST($1::int, $2::int)
         AND GREATEST(m.winner_id, m.loser_id) = GREATEST($1::int, $2::int)`,
