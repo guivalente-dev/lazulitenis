@@ -49,6 +49,8 @@ export default function App({ initial, initialAdmin }: { initial: Data; initialA
   return (
     <main className="wrap">
       <div className="topbar">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="logo" src="/logo.webp" alt="1º Ranking Lazuli de Tênis" width={200} height={200} />
         <div className="actions">
           {admin ? (
             <>
@@ -65,8 +67,6 @@ export default function App({ initial, initialAdmin }: { initial: Data; initialA
             </button>
           )}
         </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="logo" src="/logo.webp" alt="1º Ranking Lazuli de Tênis" width={200} height={200} />
       </div>
 
       <h1 className="title">Classificação</h1>

@@ -21,7 +21,7 @@ body {
 .muted { color: #9db6d3; font-size: .9rem; }
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
 .logo { width: 84px; height: 84px; display: block; }
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; gap: 8px; margin-left: auto; }
 
 .btn {
   background: #2d6aa6; color: #fff; border: 0; border-radius: 6px; padding: 9px 16px;
