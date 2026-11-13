@@ -19,7 +19,8 @@ body {
 .title { text-align: center; font-size: 2rem; margin: 10px 0 12px; letter-spacing: .2px; }
 .matches-section { margin-top: 28px; scroll-margin-top: 8px; }
 .muted { color: #9db6d3; font-size: .9rem; }
-.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.logo { width: 84px; height: 84px; display: block; }
 .actions { display: flex; gap: 8px; }
 
 .btn {
@@ -135,6 +136,7 @@ table.matches { min-width: 760px; }
 
 @media (max-width: 640px) {
   .wrap { padding: 8px 4px 40px; }
+  .logo { width: 58px; height: 58px; }
   .title { font-size: 1.35rem; margin: 8px 0; }
   .row2 { grid-template-columns: 1fr; }
   .lg { display: none; }
