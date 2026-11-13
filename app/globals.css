@@ -153,3 +153,5 @@ table.matches { min-width: 760px; }
   .dot { width: 9px; height: 9px; }
   .matches-scroll { max-height: 75vh; }
 }
+
+.footer-stats { text-align: center; margin: 26px 0 0; }

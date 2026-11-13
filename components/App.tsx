@@ -42,13 +42,13 @@ export default function App({ initial, initialAdmin }: { initial: Data; initialA
 
   const n = data.players.length;
   const totalPossible = (n * (n - 1)) / 2;
+  const pct = (totalPossible ? (data.matches.length / totalPossible) * 100 : 0).toLocaleString("pt-BR", {
+    maximumFractionDigits: 1,
+  });
 
   return (
     <main className="wrap">
       <div className="topbar">
-        <span className="muted">
-          {n} jogadores · {data.matches.length} de {totalPossible} jogos realizados
-        </span>
         <div className="actions">
           {admin ? (
             <>
@@ -82,6 +82,10 @@ export default function App({ initial, initialAdmin }: { initial: Data; initialA
           onSessionExpired={() => setAdmin(false)}
         />
       </section>
+
+      <p className="muted footer-stats">
+        {data.matches.length} de {totalPossible} jogos ({pct}%)
+      </p>
 
       {modal === "login" && (
         <LoginModal
