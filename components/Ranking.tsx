@@ -7,17 +7,17 @@ import { formatScore } from "@/lib/score";
 
 type Key = "rank" | "name" | "points" | "games" | "wins" | "losses" | "wo" | "sets" | "pct" | "form";
 
-const COLUMNS: { key: Key; label: string; text?: boolean; cls?: string }[] = [
-  { key: "rank", label: "Posição", cls: "c-pos" },
+const COLUMNS: { key: Key; label: string; short?: string; text?: boolean; cls?: string }[] = [
+  { key: "rank", label: "Posição", short: "Pos", cls: "c-pos" },
   { key: "name", label: "Jogador", text: true, cls: "c-name" },
-  { key: "points", label: "Pontos" },
-  { key: "games", label: "Total Jogos" },
-  { key: "wins", label: "Vitórias" },
-  { key: "losses", label: "Derrotas" },
+  { key: "points", label: "Pontos", short: "Pts" },
+  { key: "games", label: "Total Jogos", short: "Jogos" },
+  { key: "wins", label: "Vitórias", short: "V" },
+  { key: "losses", label: "Derrotas", short: "D" },
   { key: "wo", label: "WO" },
-  { key: "sets", label: "Sets Ganhos" },
-  { key: "pct", label: "Aprov. Vitórias" },
-  { key: "form", label: "Últ. 5 Jogos", cls: "c-form" },
+  { key: "sets", label: "Sets Ganhos", short: "Sets" },
+  { key: "pct", label: "Aprov. Vitórias", short: "%" },
+  { key: "form", label: "Últ. 5 Jogos", short: "Últ. 5", cls: "c-form" },
 ];
 
 const POSITIONS_HIGHLIGHT = 8;
@@ -82,7 +82,8 @@ export default function Ranking({
                   onClick={() => toggle(c.key, c.text)}
                   aria-sort={sort.key === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
                 >
-                  <span>{c.label}</span>
+                  <span className="lg">{c.label}</span>
+                  <span className="sm">{c.short ?? c.label}</span>
                   <i className="arrow">{sort.key === c.key ? (sort.dir === "asc" ? "▲" : "▼") : ""}</i>
                 </th>
               ))}

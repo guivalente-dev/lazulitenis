@@ -37,22 +37,23 @@ body {
 .card { background: #fff; border: 3px solid #fff; border-radius: 4px; }
 .scroll { overflow: auto; }
 .ranking-scroll { max-height: none; overflow-y: visible; }
-.matches-scroll { max-height: 920px; } /* ~20 jogos visíveis; o resto rola */
+.matches-scroll { max-height: 720px; } /* ~20 jogos visíveis; o resto rola */
 
-table.grid { border-collapse: collapse; width: 100%; color: var(--ink); font-size: 1rem; }
+table.grid { border-collapse: collapse; width: 100%; color: var(--ink); font-size: .92rem; }
 table.ranking { min-width: 860px; }
 table.matches { min-width: 760px; }
 .grid thead th {
   position: sticky; top: 0; z-index: 2;
-  background: var(--hdr); color: #fff; font-weight: 400; font-size: 1.05rem;
-  padding: 10px 8px 4px; text-align: center; cursor: pointer; user-select: none;
+  background: var(--hdr); color: #fff; font-weight: 400; font-size: .95rem;
+  padding: 7px 8px 2px; text-align: center; cursor: pointer; user-select: none;
   border-right: 1px solid var(--hdr-line); white-space: nowrap;
 }
 .grid thead th:last-child { border-right: 0; }
 .grid thead th:hover { background: #21558f; }
-.arrow { display: block; font-style: normal; font-size: .6rem; height: 12px; line-height: 12px; }
+.arrow { display: block; font-style: normal; font-size: .55rem; height: 10px; line-height: 10px; }
+.sm { display: none; }
 .grid tbody tr:nth-child(even) { background: #ececec; }
-.grid td { padding: 7px 8px; text-align: center; }
+.grid td { padding: 4px 8px; text-align: center; }
 .grid td.empty { padding: 28px; color: #666; }
 .num { font-variant-numeric: tabular-nums; }
 .strong { font-weight: 600; }
@@ -61,7 +62,7 @@ table.matches { min-width: 760px; }
 .c-pos { width: 76px; }
 .grid td.c-pos { font-weight: 600; }
 .grid td.pos-top { background: var(--green); }
-.c-form { min-width: 190px; }
+.c-form { min-width: 150px; }
 .c-date { width: 110px; white-space: nowrap; }
 .c-res { width: 150px; white-space: nowrap; }
 
@@ -70,8 +71,8 @@ table.matches { min-width: 760px; }
 .ranking tbody tr.selected td { background: #fff1b0 !important; font-weight: 600; }
 .ranking tbody tr.selected td.pos-top { background: var(--green) !important; }
 
-.dots { display: inline-flex; gap: 8px; align-items: center; }
-.dot { width: 22px; height: 22px; border-radius: 50%; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.dots { display: inline-flex; gap: 6px; align-items: center; }
+.dot { width: 16px; height: 16px; border-radius: 50%; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,.35); }
 .dot.win  { background: radial-gradient(circle at 35% 30%, #a6f7b4, #2fb457 70%); }
 .dot.loss { background: radial-gradient(circle at 35% 30%, #ff8a97, #c4162a 72%); }
 .dot.wo   { background: radial-gradient(circle at 35% 30%, #e6e6e6, #8d8d8d 72%); }
@@ -133,7 +134,22 @@ table.matches { min-width: 760px; }
 .pname { flex: 1; font-weight: 500; }
 
 @media (max-width: 640px) {
-  .title { font-size: 1.6rem; }
+  .wrap { padding: 8px 4px 40px; }
+  .title { font-size: 1.35rem; margin: 8px 0; }
   .row2 { grid-template-columns: 1fr; }
-  .grid td, .grid thead th { font-size: .95rem; }
+  .lg { display: none; }
+  .sm { display: inline; }
+  table.grid { font-size: .78rem; }
+  table.ranking, table.matches { min-width: 0; }
+  .grid td { padding: 4px 3px; }
+  .grid thead th { font-size: .72rem; padding: 6px 3px 2px; }
+  .grid td.c-name, .grid thead th.c-name { padding-left: 6px; text-align: left; }
+  .c-pos { width: 30px; }
+  .c-date { width: auto; }
+  .c-res { width: auto; }
+  .c-form { min-width: 0; }
+  .c-del { width: auto; }
+  .dots { gap: 2px; }
+  .dot { width: 9px; height: 9px; }
+  .matches-scroll { max-height: 75vh; }
 }

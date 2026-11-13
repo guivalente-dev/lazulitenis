@@ -21,13 +21,13 @@ type Line = {
   lPts: number;
 };
 
-const COLUMNS: { key: Key; label: string; text?: boolean; cls?: string }[] = [
+const COLUMNS: { key: Key; label: string; short?: string; text?: boolean; cls?: string }[] = [
   { key: "date", label: "Data", cls: "c-date" },
-  { key: "wres", label: "Resultado", cls: "c-res" },
+  { key: "wres", label: "Resultado", short: "Pts", cls: "c-res" },
   { key: "winner", label: "Vencedor", text: true },
-  { key: "score", label: "Parciais" },
+  { key: "score", label: "Parciais", short: "Placar" },
   { key: "loser", label: "Perdedor", text: true },
-  { key: "lres", label: "Resultado", cls: "c-res" },
+  { key: "lres", label: "Resultado", short: "Pts", cls: "c-res" },
 ];
 
 function sortValue(l: Line, key: Key): number | string {
@@ -152,7 +152,8 @@ export default function Matches({
                     onClick={() => toggle(c.key, c.text)}
                     aria-sort={sort.key === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}
                   >
-                    <span>{c.label}</span>
+                    <span className="lg">{c.label}</span>
+                    <span className="sm">{c.short ?? c.label}</span>
                     <i className="arrow">{sort.key === c.key ? (sort.dir === "asc" ? "▲" : "▼") : ""}</i>
                   </th>
                 ))}
@@ -163,12 +164,13 @@ export default function Matches({
               {sorted.map((l) => (
                 <tr key={l.id}>
                   <td className="c-date">{formatDate(l.date)}</td>
-                  <td className="c-res res-win">Vitória (+{POINTS.win})</td>
+                  <td className="c-res res-win"><span className="lg">Vitória </span>(+{POINTS.win})</td>
                   <td className={selected?.id === l.wId ? "me" : undefined}>{l.wName}</td>
                   <td className="num">{formatScore(l.score)}</td>
                   <td className={selected?.id === l.lId ? "me" : undefined}>{l.lName}</td>
                   <td className={`c-res ${l.wo ? "res-wo" : "res-loss"}`}>
-                    {l.wo ? `WO (+${l.lPts})` : `Derrota (+${l.lPts})`}
+                    <span className={l.wo ? undefined : "lg"}>{l.wo ? "WO " : "Derrota "}</span>
+                    (+{l.lPts})
                   </td>
                   {admin && (
                     <td className="c-del">
