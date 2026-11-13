@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { logAction, matchLabel } from "@/lib/audit";
 import { ensureSchema, pool } from "@/lib/db";
+import { requireRole } from "@/lib/session";
 
 export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const denied = await requireAdmin(req);
-  if (denied) return denied;
+  const who = await requireRole(req, "admin");
+  if (who instanceof NextResponse) return who;
   const id = Number((await ctx.params).id);
   if (!Number.isInteger(id)) return NextResponse.json({ error: "ID inválido." }, { status: 400 });
   await ensureSchema();
-  await pool().query("DELETE FROM matches WHERE id = $1", [id]);
+  const label = await matchLabel(id);
+  const r = await pool().query("DELETE FROM matches WHERE id = $1", [id]);
+  if (r.rowCount) await logAction(who, "jogo_apagado", label);
   return NextResponse.json({ ok: true });
 }

@@ -8,28 +8,24 @@ import Matches from "./Matches";
 import LoginModal from "./LoginModal";
 import AdminModal from "./AdminModal";
 import ResultModal from "./ResultModal";
+import LogModal from "./LogModal";
+
+export type Me = { role: "owner" | "admin" | "player"; email: string | null };
 
 const AVISOS: Record<string, string> = {
-  negado: "Esse e-mail Google não está autorizado a enviar resultados. Peça ao organizador para cadastrá-lo.",
+  negado: "Esse e-mail Google não está cadastrado. Peça a um administrador para incluir seu e-mail.",
   cancelado: "Login cancelado. Tente novamente.",
   erro: "Não foi possível entrar com o Google agora. Tente novamente.",
   indisponivel: "O login com Google ainda não está configurado.",
 };
 
-export default function App({
-  initial,
-  initialAdmin,
-  initialUser,
-}: {
-  initial: Data;
-  initialAdmin: boolean;
-  initialUser: string | null;
-}) {
+export default function App({ initial, initialMe }: { initial: Data; initialMe: Me | null }) {
   const [data, setData] = useState<Data>(initial);
-  const [admin, setAdmin] = useState(initialAdmin);
-  const [user, setUser] = useState<string | null>(initialUser);
+  const [me, setMe] = useState<Me | null>(initialMe);
+  const admin = me?.role === "admin" || me?.role === "owner";
+  const owner = me?.role === "owner";
   const [aviso, setAviso] = useState("");
-  const [modal, setModal] = useState<null | "login" | "admin" | "result">(null);
+  const [modal, setModal] = useState<null | "login" | "admin" | "result" | "log">(null);
   const [selected, setSelected] = useState<number | null>(null);
   const matchesRef = useRef<HTMLElement>(null);
 
@@ -38,25 +34,20 @@ export default function App({
     if (res.ok) setData(await res.json());
   }, []);
 
-  // Volta do login com Google: ?enviar=1 abre o formulário; ?acesso=... mostra o motivo da falha
+  // ?acesso=... mostra o motivo de uma falha no login; ?owner=1 abre o acesso de emergência por senha
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
-    if (!q.has("enviar") && !q.has("acesso")) return;
-    if (q.get("enviar") && initialUser) setModal("result");
+    if (!q.has("acesso") && !q.has("ok") && !q.has("owner")) return;
     const motivo = q.get("acesso");
     if (motivo) setAviso(AVISOS[motivo] ?? AVISOS.erro);
+    if (q.has("owner") && !initialMe) setModal("login");
     window.history.replaceState(null, "", window.location.pathname);
-  }, [initialUser]);
+  }, [initialMe]);
 
-  const openResult = () => {
-    if (user) setModal("result");
-    else window.location.href = "/api/auth/google/start"; // login com Google
-  };
-
-  const userLogout = async () => {
-    await fetch("/api/user/logout", { method: "POST" });
-    setUser(null);
+  const sessionExpired = () => {
+    setMe(null);
     setModal(null);
+    setAviso("Sua sessão expirou ou seu acesso foi removido. Entre novamente.");
   };
 
   const rows = useMemo(() => computeRanking(data.players, data.matches), [data]);
@@ -75,7 +66,7 @@ export default function App({
 
   const logout = async () => {
     await fetch("/api/logout", { method: "POST" });
-    setAdmin(false);
+    setMe(null);
     setModal(null);
   };
 
@@ -91,22 +82,29 @@ export default function App({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="logo" src="/logo.webp" alt="1º Ranking Lazuli de Tênis" width={200} height={200} />
         <div className="actions">
-          <button className="btn primary" onClick={openResult}>
-            Enviar resultado
-          </button>
-          {admin ? (
+          {!me ? (
+            <a className="btn primary" href="/api/auth/google/start">
+              Entrar com Google
+            </a>
+          ) : (
             <>
-              <button className="btn" onClick={() => setModal("admin")}>
-                Painel admin
+              <button className="btn primary" onClick={() => setModal("result")}>
+                Enviar resultado
               </button>
+              {admin && (
+                <button className="btn" onClick={() => setModal("admin")}>
+                  Admin
+                </button>
+              )}
+              {owner && (
+                <button className="btn" onClick={() => setModal("log")}>
+                  Log
+                </button>
+              )}
               <button className="btn ghost" onClick={logout}>
                 Sair
               </button>
             </>
-          ) : (
-            <button className="btn ghost" onClick={() => setModal("login")}>
-              Admin
-            </button>
           )}
         </div>
       </div>
@@ -132,7 +130,7 @@ export default function App({
           onClear={() => setSelected(null)}
           admin={admin}
           onChanged={reload}
-          onSessionExpired={() => setAdmin(false)}
+          onSessionExpired={sessionExpired}
         />
       </section>
 
@@ -144,36 +142,25 @@ export default function App({
         <LoginModal
           onClose={() => setModal(null)}
           onSuccess={() => {
-            setAdmin(true);
+            setMe({ role: "owner", email: null });
             setModal("admin");
           }}
         />
       )}
-      {modal === "result" && user && (
+      {modal === "result" && me && (
         <ResultModal
           data={data}
-          email={user}
+          email={me.email ?? "Owner"}
           onClose={() => setModal(null)}
           onChanged={reload}
-          onSessionExpired={() => {
-            setUser(null);
-            setModal(null);
-            setAviso("Sua sessão expirou ou seu e-mail não está mais autorizado. Entre com o Google novamente.");
-          }}
-          onLogout={userLogout}
+          onSessionExpired={sessionExpired}
+          onLogout={logout}
         />
       )}
       {modal === "admin" && admin && (
-        <AdminModal
-          data={data}
-          onClose={() => setModal(null)}
-          onChanged={reload}
-          onSessionExpired={() => {
-            setAdmin(false);
-            setModal("login");
-          }}
-        />
+        <AdminModal data={data} onClose={() => setModal(null)} onChanged={reload} onSessionExpired={sessionExpired} />
       )}
+      {modal === "log" && owner && <LogModal onClose={() => setModal(null)} onSessionExpired={sessionExpired} />}
     </main>
   );
 }

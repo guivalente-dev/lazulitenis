@@ -32,7 +32,8 @@ function verifyToken(token?: string): boolean {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-export async function isAdmin(): Promise<boolean> {
+/** Sessão do owner por senha (acesso de emergência). */
+export async function hasPasswordSession(): Promise<boolean> {
   const jar = await cookies();
   return verifyToken(jar.get(COOKIE)?.value);
 }
@@ -54,15 +55,9 @@ export async function endSession() {
   jar.delete(COOKIE);
 }
 
-/** Retorna uma resposta de erro se a requisição não for de um admin; senão null. */
-export async function requireAdmin(req: Request): Promise<NextResponse | null> {
+/** Requisições de outro site (CSRF) são recusadas. */
+export function originOk(req: Request): boolean {
   const origin = req.headers.get("origin");
   const host = req.headers.get("host");
-  if (origin && host && new URL(origin).host !== host) {
-    return NextResponse.json({ error: "Origem não permitida." }, { status: 403 });
-  }
-  if (!(await isAdmin())) {
-    return NextResponse.json({ error: "Sessão de admin expirada. Entre novamente." }, { status: 401 });
-  }
-  return null;
+  return !(origin && host && new URL(origin).host !== host);
 }

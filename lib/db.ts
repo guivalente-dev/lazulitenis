@@ -56,6 +56,15 @@ async function createSchema(): Promise<void> {
       -- Quem enviou o resultado (e-mail Google); nulo quando lançado pelo admin
       ALTER TABLE matches ADD COLUMN IF NOT EXISTS submitted_by TEXT;
       -- E-mail Google do jogador: quem tem e-mail cadastrado pode enviar resultados pelo site
+      ALTER TABLE players ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+      -- Registro de tudo que foi feito (visível só para o owner)
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id SERIAL PRIMARY KEY,
+        at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        actor TEXT NOT NULL,
+        action TEXT NOT NULL,
+        detail TEXT
+      );
       ALTER TABLE players ADD COLUMN IF NOT EXISTS email TEXT;
       CREATE UNIQUE INDEX IF NOT EXISTS players_email_uq ON players (lower(email)) WHERE email IS NOT NULL;
       -- Migra a lista antiga (allowed_emails), quando existir, casando pelo nome

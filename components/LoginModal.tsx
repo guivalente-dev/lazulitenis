@@ -28,7 +28,7 @@ export default function LoginModal({ onClose, onSuccess }: { onClose: () => void
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <form className="modal narrow" onSubmit={submit}>
         <div className="modal-head">
-          <h2>Entrar como admin</h2>
+          <h2>Acesso do owner (senha)</h2>
           <button type="button" className="x" onClick={onClose} aria-label="Fechar">
             ✕
           </button>

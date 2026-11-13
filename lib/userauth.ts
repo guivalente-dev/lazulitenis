@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 import { ensureSchema, pool } from "@/lib/db";
 
 /**
@@ -33,7 +32,7 @@ export function makeUserToken(email: string): string | null {
   return sig ? `${payload}.${sig}` : null;
 }
 
-function emailFromToken(token?: string): string | null {
+export function emailFromToken(token?: string): string | null {
   if (!token) return null;
   const [e, exp, sig] = token.split(".");
   if (!e || !exp || !sig || Number(exp) < Date.now()) return null;
@@ -45,18 +44,19 @@ function emailFromToken(token?: string): string | null {
   return unb64(e);
 }
 
+export const ownerEmail = () => (process.env.OWNER_EMAIL ?? "").trim().toLowerCase();
+
+/** O e-mail pode entrar? Owner (variável de ambiente) ou jogador com e-mail cadastrado. */
 export async function isAllowedEmail(email: string): Promise<boolean> {
+  if (email && email.toLowerCase() === ownerEmail()) return true;
   await ensureSchema();
   const r = await pool().query("SELECT 1 FROM players WHERE email IS NOT NULL AND lower(email) = lower($1)", [email]);
   return (r.rowCount ?? 0) > 0;
 }
 
-/** E-mail do participante logado, se a sessão for válida e o e-mail ainda estiver na lista. */
-export async function currentUser(): Promise<string | null> {
-  const jar = await cookies();
-  const email = emailFromToken(jar.get(USER_COOKIE)?.value);
-  if (!email) return null;
-  return (await isAllowedEmail(email)) ? email : null;
+/** E-mail do cookie do Google, se a assinatura e a validade estiverem corretas (sem consultar o banco). */
+export async function userEmailFromCookie(): Promise<string | null> {
+  return emailFromToken((await cookies()).get(USER_COOKIE)?.value);
 }
 
 export async function endUserSession() {
@@ -76,21 +76,4 @@ export function publicOrigin(req: Request): string {
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? new URL(req.url).host;
   const proto = req.headers.get("x-forwarded-proto") ?? (/^(localhost|127\.)/.test(host) ? "http" : "https");
   return `${proto}://${host}`;
-}
-
-/** Resposta de erro se a requisição não for de um participante autorizado; senão o e-mail. */
-export async function requireUser(req: Request): Promise<{ email: string } | NextResponse> {
-  const origin = req.headers.get("origin");
-  const host = req.headers.get("host");
-  if (origin && host && new URL(origin).host !== host) {
-    return NextResponse.json({ error: "Origem não permitida." }, { status: 403 });
-  }
-  const email = await currentUser();
-  if (!email) {
-    return NextResponse.json(
-      { error: "Sua sessão expirou ou seu e-mail não está autorizado. Entre com o Google novamente." },
-      { status: 401 },
-    );
-  }
-  return { email };
 }

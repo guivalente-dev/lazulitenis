@@ -161,3 +161,16 @@ table.matches { min-width: 760px; }
 .link-btn { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
 .aviso { margin: 8px 0; }
 .emails .addrow { flex-wrap: wrap; }
+
+/* Perfis e log */
+.chk { display: inline-flex; align-items: center; gap: 4px; font-size: .9rem; white-space: nowrap; }
+.chk input { width: auto; }
+.badge { display: inline-block; padding: 0 6px; border-radius: 8px; background: #e0e7ff; color: #3730a3; font-size: .72rem; font-weight: 600; vertical-align: middle; }
+.badge.owner { background: #fef3c7; color: #92400e; }
+.modal.wide { max-width: 900px; width: 96vw; }
+.log-scroll { max-height: 62vh; overflow: auto; border-top: 1px solid #e2e8f0; }
+table.log { width: 100%; border-collapse: collapse; font-size: .82rem; }
+table.log th, table.log td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #eef1f5; vertical-align: top; }
+table.log th { position: sticky; top: 0; background: #f8fafc; }
+.nowrap { white-space: nowrap; }
+a.btn { text-decoration: none; display: inline-block; }

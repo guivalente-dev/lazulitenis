@@ -1,5 +1,4 @@
-import { isAdmin } from "@/lib/auth";
-import { currentUser } from "@/lib/userauth";
+import { getActor } from "@/lib/session";
 import { DbNotConfigured, getData } from "@/lib/db";
 import type { Data } from "@/lib/types";
 import App from "@/components/App";
@@ -26,6 +25,6 @@ export default async function Page() {
       </main>
     );
   }
-  const user = await currentUser().catch(() => null);
-  return <App initial={data} initialAdmin={await isAdmin()} initialUser={user} />;
+  const actor = await getActor().catch(() => null);
+  return <App initial={data} initialMe={actor ? { role: actor.role, email: actor.email } : null} />;
 }

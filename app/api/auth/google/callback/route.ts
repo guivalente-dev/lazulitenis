@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { logAction } from "@/lib/audit";
 import { cookieOpts, isAllowedEmail, makeUserToken, publicOrigin, STATE_COOKIE, USER_COOKIE, USER_MAX_AGE_S } from "@/lib/userauth";
 
 export const dynamic = "force-dynamic";
@@ -54,11 +55,15 @@ export async function GET(req: Request) {
     if (!info.email || info.email_verified !== true) return back("acesso=erro");
 
     const email = info.email.trim().toLowerCase();
-    if (!(await isAllowedEmail(email))) return back("acesso=negado");
+    if (!(await isAllowedEmail(email))) {
+      await logAction(email, "login_negado", "E-mail não cadastrado");
+      return back("acesso=negado");
+    }
 
     const token = makeUserToken(email);
     if (!token) return back("acesso=indisponivel");
-    const res = back("enviar=1");
+    await logAction(email, "login", "Entrou com o Google");
+    const res = back("ok=1");
     res.cookies.set(USER_COOKIE, token, cookieOpts(USER_MAX_AGE_S));
     return res;
   } catch (e) {

@@ -202,13 +202,14 @@ function MatchForm({ data, onChanged, onSessionExpired }: Props) {
   );
 }
 
-type AdminPlayer = { id: number; name: string; email: string | null };
+type AdminPlayer = { id: number; name: string; email: string | null; isAdmin: boolean; locked: boolean };
 
-/** Jogadores: nome + e-mail Google. Jogador com e-mail pode entrar e enviar resultados. */
+/** Jogadores: nome, e-mail Google e flag de admin. Jogador com e-mail pode entrar e enviar resultados. */
 function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
   const [items, setItems] = useState<AdminPlayer[] | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<AdminPlayer | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
@@ -260,18 +261,19 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (await call("/api/players", "POST", { name, email })) {
+    if (await call("/api/players", "POST", { name, email, isAdmin })) {
       setName("");
       setEmail("");
+      setIsAdmin(false);
     }
   };
 
   return (
     <div className="form emails">
       <p className="muted">
-        Cada jogador pode ter um e-mail Google. Quem tem e-mail cadastrado entra com a conta Google e envia resultados
-        pelo botão “Enviar resultado”. Sem e-mail, o jogador só aparece no ranking. Apagar o e-mail bloqueia o acesso na
-        hora.
+        Cada jogador pode ter um e-mail Google. Com e-mail, ele entra com o Google e envia resultados. Marque{" "}
+        <strong>Admin</strong> para dar acesso ao painel (lançar e apagar jogos, cadastrar jogadores e outros admins).
+        Apagar o e-mail ou tirar o admin vale na hora.
       </p>
       <form className="addrow" onSubmit={add}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do jogador" maxLength={60} />
@@ -282,6 +284,9 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
           placeholder="E-mail Google (opcional)"
           autoComplete="off"
         />
+        <label className="chk">
+          <input type="checkbox" checked={isAdmin} onChange={(e) => setIsAdmin(e.target.checked)} /> Admin
+        </label>
         <button className="btn primary" disabled={busy || name.trim().length < 2}>
           Adicionar
         </button>
@@ -300,7 +305,13 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
                     className="addrow"
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      if (await call(`/api/players/${p.id}`, "PATCH", { name: editing.name, email: editing.email ?? "" })) {
+                      if (
+                        await call(`/api/players/${p.id}`, "PATCH", {
+                          name: editing.name,
+                          email: editing.email ?? "",
+                          isAdmin: editing.isAdmin,
+                        })
+                      ) {
                         setEditing(null);
                       }
                     }}
@@ -314,9 +325,19 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
                     <input
                       type="email"
                       value={editing.email ?? ""}
+                      disabled={p.locked}
                       placeholder="E-mail Google (opcional)"
                       onChange={(e) => setEditing({ ...editing, email: e.target.value })}
                     />
+                    <label className="chk">
+                      <input
+                        type="checkbox"
+                        checked={editing.isAdmin}
+                        disabled={p.locked}
+                        onChange={(e) => setEditing({ ...editing, isAdmin: e.target.checked })}
+                      />{" "}
+                      Admin
+                    </label>
                     <button className="btn small primary" disabled={busy}>
                       Salvar
                     </button>
@@ -328,6 +349,7 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
                   <>
                     <span className="pname">
                       <strong>{p.name}</strong>{" "}
+                      {p.locked ? <span className="badge owner">Owner</span> : p.isAdmin ? <span className="badge">Admin</span> : null}{" "}
                       {p.email ? <span className="muted">{p.email}</span> : <span className="muted">· sem acesso</span>}
                     </span>
                     <span className="muted">
@@ -336,7 +358,7 @@ function PlayersTab({ data, onChanged, onSessionExpired }: Props) {
                     <button className="btn small" onClick={() => setEditing(p)}>
                       Editar
                     </button>
-                    {n === 0 && (
+                    {n === 0 && !p.locked && (
                       <button
                         className={`link-danger ${confirmId === p.id ? "armed" : ""}`}
                         onClick={async () => {
